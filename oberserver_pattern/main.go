@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// combining strategy & observer pattern
 type (
 	Event struct {
 		eventTime time.Time
@@ -12,7 +13,7 @@ type (
 	}
 
 	ObserverInterface interface {
-		Display(Event)
+		// Display(Event)
 	}
 
 	ObserverableInterface interface {
@@ -28,16 +29,28 @@ type (
 
 type (
 	ObserverStruct struct {
-		id int
+		id         int
+		displaying DisplayInterface
 	}
 
 	ObserverableStruct struct {
 		observers map[ObserverStruct]struct{}
 	}
+
+	Display        struct{}
+	AnotherDisplay struct{}
 )
 
-func (o *ObserverStruct) Display(event Event) {
-	fmt.Printf("%s: observer %d: receive %s\n", event.eventTime.Format(time.RFC3339), o.id, event.eventName)
+func (Display) Display(observerID int, event Event) {
+	fmt.Printf("%s: observer %d receive %s\n", event.eventTime.Format(time.RFC3339), observerID, event.eventName)
+}
+
+func (AnotherDisplay) Display(observerID int, event Event) {
+	fmt.Printf("observer %d receive %s\n", observerID, event.eventName)
+}
+
+func (o *ObserverStruct) Display(observerID int, event Event) {
+	o.displaying.Display(o.id, event)
 }
 
 func (o *ObserverableStruct) Add(ob ObserverStruct) {
@@ -50,7 +63,7 @@ func (o *ObserverableStruct) Remove(ob ObserverStruct) {
 
 func (o *ObserverableStruct) Notify(event Event) {
 	for observer := range o.observers {
-		observer.Display(event)
+		observer.Display(observer.id, event)
 	}
 }
 
@@ -59,9 +72,9 @@ func main() {
 		observers: map[ObserverStruct]struct{}{},
 	}
 
-	n.Add(ObserverStruct{id: 1})
-	n.Add(ObserverStruct{id: 2})
-	n.Add(ObserverStruct{id: 3})
+	n.Add(ObserverStruct{id: 1, displaying: Display{}})
+	n.Add(ObserverStruct{id: 2, displaying: Display{}})
+	n.Add(ObserverStruct{id: 3, displaying: Display{}})
 
 	stop := time.NewTimer(10 * time.Second).C
 	tick := time.NewTicker(time.Second).C
